@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using ToonBossRush.Combat;
 
 namespace ToonBossRush.Player
@@ -7,6 +8,8 @@ namespace ToonBossRush.Player
     /// 약공격 3단 콤보 + 강공격 1타.
     /// 실제 히트박스 on/off는 애니메이션 이벤트가 HitboxController.Activate/Deactivate를 호출하는 구조.
     /// (여기서는 콤보 타이밍/입력 버퍼만 담당)
+    /// New Input System(InputSystem_Actions) 기반: 약공격은 Player/Attack(좌클릭),
+    /// 강공격은 Player/HeavyAttack(우클릭) 액션을 사용.
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
     public class PlayerCombat : MonoBehaviour
@@ -19,6 +22,7 @@ namespace ToonBossRush.Player
         [SerializeField] private float heavyDamage = 22f;
 
         private PlayerController _controller;
+        private InputSystem_Actions _inputActions;
         private int _comboIndex; // 0,1,2
         private float _comboTimer;
         private bool _isAttacking;
@@ -26,6 +30,20 @@ namespace ToonBossRush.Player
         private void Awake()
         {
             _controller = GetComponent<PlayerController>();
+            _inputActions = new InputSystem_Actions();
+
+            if (animator == null)
+                animator = GetComponent<Animator>();
+        }
+
+        private void OnEnable()
+        {
+            _inputActions.Player.Enable();
+        }
+
+        private void OnDisable()
+        {
+            _inputActions.Player.Disable();
         }
 
         private void Update()
@@ -38,14 +56,15 @@ namespace ToonBossRush.Player
 
             if (!_controller.CanAct || _isAttacking) return;
 
-            if (Input.GetMouseButtonDown(0)) DoLightAttack();
-            else if (Input.GetMouseButtonDown(1)) DoHeavyAttack();
+            if (_inputActions.Player.Attack.WasPressedThisFrame()) DoLightAttack();
+            else if (_inputActions.Player.HeavyAttack.WasPressedThisFrame()) DoHeavyAttack();
         }
 
         private void DoLightAttack()
         {
             _isAttacking = true;
-            lightHitbox.Damage = lightComboDamage[_comboIndex];
+            if (lightHitbox != null)
+                lightHitbox.Damage = lightComboDamage[_comboIndex];
             animator?.SetInteger("ComboIndex", _comboIndex);
             animator?.SetTrigger("LightAttack");
 
@@ -60,7 +79,8 @@ namespace ToonBossRush.Player
         private void DoHeavyAttack()
         {
             _isAttacking = true;
-            heavyHitbox.Damage = heavyDamage;
+            if (heavyHitbox != null)
+                heavyHitbox.Damage = heavyDamage;
             animator?.SetTrigger("HeavyAttack");
             _comboIndex = 0;
 

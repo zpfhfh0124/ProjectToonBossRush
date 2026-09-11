@@ -1,10 +1,12 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace ToonBossRush.Player
 {
     /// <summary>
     /// 카메라 상대 8방향 이동 + 회피(구르기, 짧은 무적프레임).
-    /// 빠른 시작을 위해 레거시 Input(Input.GetAxis)을 사용 — 필요하면 New Input System으로 교체.
+    /// New Input System(InputSystem_Actions) 기반. Move는 Player/Move(Vector2),
+    /// 회피는 Player/Dodge(Button, LeftShift/Space 바인딩) 액션을 사용.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public class PlayerController : MonoBehaviour
@@ -29,6 +31,7 @@ namespace ToonBossRush.Player
         public bool CanAct => !IsDodging; // 공격 시스템에서 참조
 
         private CharacterController _controller;
+        private InputSystem_Actions _inputActions;
         private Vector3 _verticalVelocity;
         private Vector3 _dodgeDirection;
         private float _dodgeTimer;
@@ -37,8 +40,23 @@ namespace ToonBossRush.Player
         private void Awake()
         {
             _controller = GetComponent<CharacterController>();
-            if (cameraTransform == null && Camera.main != null)
-                cameraTransform = Camera.main.transform;
+            _inputActions = new InputSystem_Actions();
+
+            if (cameraTransform == null && UnityEngine.Camera.main != null)
+                cameraTransform = UnityEngine.Camera.main.transform;
+
+            if (animator == null)
+                animator = GetComponent<Animator>();
+        }
+
+        private void OnEnable()
+        {
+            _inputActions.Player.Enable();
+        }
+
+        private void OnDisable()
+        {
+            _inputActions.Player.Disable();
         }
 
         private void Update()
@@ -58,9 +76,8 @@ namespace ToonBossRush.Player
 
         private void HandleMoveAndRotate()
         {
-            float h = Input.GetAxisRaw("Horizontal");
-            float v = Input.GetAxisRaw("Vertical");
-            Vector3 inputDir = new Vector3(h, 0f, v);
+            Vector2 moveInput = _inputActions.Player.Move.ReadValue<Vector2>();
+            Vector3 inputDir = new Vector3(moveInput.x, 0f, moveInput.y);
 
             if (inputDir.sqrMagnitude < 0.001f)
             {
@@ -86,11 +103,10 @@ namespace ToonBossRush.Player
         private void HandleDodgeInput()
         {
             if (_dodgeCooldownTimer > 0f) return;
-            if (!Input.GetButtonDown("Jump") && !Input.GetKeyDown(KeyCode.LeftShift)) return; // 임시 바인딩
+            if (!_inputActions.Player.Dodge.WasPressedThisFrame()) return;
 
-            float h = Input.GetAxisRaw("Horizontal");
-            float v = Input.GetAxisRaw("Vertical");
-            Vector3 inputDir = new Vector3(h, 0f, v);
+            Vector2 moveInput = _inputActions.Player.Move.ReadValue<Vector2>();
+            Vector3 inputDir = new Vector3(moveInput.x, 0f, moveInput.y);
             Vector3 camForward = cameraTransform != null ? Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up).normalized : Vector3.forward;
             Vector3 camRight = cameraTransform != null ? Vector3.ProjectOnPlane(cameraTransform.right, Vector3.up).normalized : Vector3.right;
 
