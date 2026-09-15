@@ -26,7 +26,7 @@ namespace ToonBossRush.Camera
         [SerializeField] private bool invertY = false;
 
         [Header("거리 / 충돌 보정")]
-        [SerializeField] private float distance = 5f;
+        [SerializeField] private float distance = 3.5f; // 2026-09-15: 카메라 확인 결과 5f는 너무 멀다는 피드백 반영, 더 가깝게 조정
         [SerializeField] private float minDistance = 0.8f;
         [SerializeField] private float collisionRadius = 0.25f;
         [SerializeField] private LayerMask collisionMask = ~0;
