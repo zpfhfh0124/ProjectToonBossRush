@@ -1489,6 +1489,7 @@ MonoBehaviour:
   moveSpeed: 5
   rotationSpeed: 720
   gravity: -20
+  referenceWalkClipSpeed: 1.5
   dodgeDistance: 4
   dodgeDuration: 0.35
   dodgeInvincibleWindow: 0.25

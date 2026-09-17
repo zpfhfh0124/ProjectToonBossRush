@@ -16,6 +16,16 @@ namespace ToonBossRush.Player
         [SerializeField] private float rotationSpeed = 720f; // deg/sec
         [SerializeField] private float gravity = -20f;
 
+        [Header("애니메이션 동기화")]
+        // Walk 클립이 "제자리에서" 표현하는 보폭 속도(m/s) 추정치.
+        // CharacterController는 moveSpeed로 즉시 이동하는데 클립은 이 값과 무관하게
+        // 자체 재생 속도(1배)로 도는 게 기본이라, moveSpeed와 이 값이 다르면
+        // 발이 실제 이동보다 늦게/빠르게 나가는(미끄러지는) 것처럼 보임.
+        // Walking/Turn/Strafe 상태의 Speed Parameter를 AnimSpeedMultiplier로 연결해두면
+        // 이 값이 moveSpeed / referenceWalkClipSpeed 배율로 클립 재생 속도를 보정함.
+        // 발이 계속 밀리면(체공감) 이 값을 낮추고, 반대로 발이 헛돌면(제자리걸음) 값을 높일 것.
+        [SerializeField] private float referenceWalkClipSpeed = 1.5f;
+
         [Header("회피")]
         [SerializeField] private float dodgeDistance = 4f;
         [SerializeField] private float dodgeDuration = 0.35f;
@@ -82,6 +92,8 @@ namespace ToonBossRush.Player
             if (inputDir.sqrMagnitude < 0.001f)
             {
                 animator?.SetFloat("MoveSpeed", 0f);
+                animator?.SetFloat("TurnAngle", 0f);
+                animator?.SetFloat("AnimSpeedMultiplier", 1f);
                 return;
             }
 
@@ -92,12 +104,25 @@ namespace ToonBossRush.Player
             Vector3 camRight = cameraTransform != null ? Vector3.ProjectOnPlane(cameraTransform.right, Vector3.up).normalized : Vector3.right;
             Vector3 moveDir = (camForward * inputDir.z + camRight * inputDir.x).normalized;
 
+            // 회전이 moveDir을 따라잡기 전, "몸이 향한 방향"과 "실제 이동 방향"의 오차각.
+            // rotationSpeed로 인해 방향을 급하게 꺾을수록 이 값이 순간적으로 커졌다가
+            // 몸이 회전을 따라잡으며 매 프레임 자연스럽게 0으로 수렴함 — 이 수렴 과정을
+            // Turn/Strafe 애니메이션 전환의 트리거로 사용(양수=오른쪽으로 꺾어야 함).
+            float signedTurnAngle = Vector3.SignedAngle(transform.forward, moveDir, Vector3.up);
+
             _controller.Move(moveDir * moveSpeed * Time.deltaTime);
 
             Quaternion targetRot = Quaternion.LookRotation(moveDir, Vector3.up);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
 
             animator?.SetFloat("MoveSpeed", moveDir.magnitude);
+            animator?.SetFloat("TurnAngle", signedTurnAngle);
+
+            // 실제 이동 속도(moveSpeed)와 클립이 표현하는 보폭 속도(referenceWalkClipSpeed)의
+            // 비율로 클립 재생 속도를 보정 — Animator 쪽 상태의 Speed Parameter가
+            // AnimSpeedMultiplier로 연결돼 있어야 실제로 적용됨(빌더 스크립트 참고).
+            float animSpeedMultiplier = referenceWalkClipSpeed > 0.001f ? moveSpeed / referenceWalkClipSpeed : 1f;
+            animator?.SetFloat("AnimSpeedMultiplier", animSpeedMultiplier);
         }
 
         private void HandleDodgeInput()
