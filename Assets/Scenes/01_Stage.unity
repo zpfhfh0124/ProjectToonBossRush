@@ -1486,7 +1486,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 065fed097c10bd6489d557adcd26eea1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ToonBossRush.Player.PlayerController
-  moveSpeed: 5
+  moveSpeed: 1.8
   rotationSpeed: 720
   gravity: -20
   referenceWalkClipSpeed: 1.5

@@ -26,6 +26,12 @@ namespace ToonBossRush.Editor
         private const float TurnThreshold = 35f;   // 이 각도 미만이면 Walking 유지
         private const float StrafeThreshold = 100f; // 이 각도 이상이면 Strafe로 전환
 
+        // Idle에서 이동 상태로 들어갈 때 클립을 정규화 시간 0(기본 자세)이 아니라
+        // 이 지점부터 재생 시작 — 이동을 시작하는 순간 이미 보폭 중간(발이 나가 있는 자세)부터
+        // 보이게 해서 "움직이자마자 바로 발을 내딛는" 것처럼 느껴지게 함.
+        // Play 테스트하면서 실제 클립에 맞게 0~1 사이로 취향껏 조정.
+        private const float MoveEntryOffset = 0.25f;
+
         [MenuItem("ToonBossRush/Player/Build Turn-Strafe States")]
         public static void Build()
         {
@@ -74,31 +80,32 @@ namespace ToonBossRush.Editor
             SetSpeedParameter(strafeRight, "AnimSpeedMultiplier");
 
             // AnyState → 각 이동 상태 (실시간 각도 변화에 반응, 짧은 크로스페이드)
-            AddAnyStateTransition(sm, walkingState,
+            // MoveEntryOffset: 이동 시작 즉시 보폭 중간부터 보이도록 진입 지점을 당겨둠.
+            AddAnyStateTransition(sm, walkingState, MoveEntryOffset,
                 ("MoveSpeed", AnimatorConditionMode.Greater, 0.1f),
                 ("TurnAngle", AnimatorConditionMode.Greater, -TurnThreshold),
                 ("TurnAngle", AnimatorConditionMode.Less, TurnThreshold));
 
-            AddAnyStateTransition(sm, turnRight,
+            AddAnyStateTransition(sm, turnRight, MoveEntryOffset,
                 ("MoveSpeed", AnimatorConditionMode.Greater, 0.1f),
                 ("TurnAngle", AnimatorConditionMode.Greater, TurnThreshold),
                 ("TurnAngle", AnimatorConditionMode.Less, StrafeThreshold));
 
-            AddAnyStateTransition(sm, turnLeft,
+            AddAnyStateTransition(sm, turnLeft, MoveEntryOffset,
                 ("MoveSpeed", AnimatorConditionMode.Greater, 0.1f),
                 ("TurnAngle", AnimatorConditionMode.Less, -TurnThreshold),
                 ("TurnAngle", AnimatorConditionMode.Greater, -StrafeThreshold));
 
-            AddAnyStateTransition(sm, strafeRight,
+            AddAnyStateTransition(sm, strafeRight, MoveEntryOffset,
                 ("MoveSpeed", AnimatorConditionMode.Greater, 0.1f),
                 ("TurnAngle", AnimatorConditionMode.Greater, StrafeThreshold));
 
-            AddAnyStateTransition(sm, strafeLeft,
+            AddAnyStateTransition(sm, strafeLeft, MoveEntryOffset,
                 ("MoveSpeed", AnimatorConditionMode.Greater, 0.1f),
                 ("TurnAngle", AnimatorConditionMode.Less, -StrafeThreshold));
 
-            // AnyState → Idle (모든 이동 상태 공통 복귀 경로)
-            AddAnyStateTransition(sm, idleState,
+            // AnyState → Idle (모든 이동 상태 공통 복귀 경로) — Idle은 제자리 자세라 오프셋 불필요.
+            AddAnyStateTransition(sm, idleState, 0f,
                 ("MoveSpeed", AnimatorConditionMode.Less, 0.1f));
 
             EditorUtility.SetDirty(controller);
@@ -144,9 +151,10 @@ namespace ToonBossRush.Editor
             state.speed = 1f;
             state.speedParameterActive = true;
             state.speedParameter = parameterName;
+            Debug.Log($"현재 애니메이션 : {state} - {parameterName}");
         }
 
-        private static void AddAnyStateTransition(AnimatorStateMachine sm, AnimatorState destination, params (string param, AnimatorConditionMode mode, float threshold)[] conditions)
+        private static void AddAnyStateTransition(AnimatorStateMachine sm, AnimatorState destination, float offset, params (string param, AnimatorConditionMode mode, float threshold)[] conditions)
         {
             // 재실행 시 중복 생성 방지 — 같은 목적지로 가는 기존 AnyState 트랜지션을 지우고 재생성
             foreach (AnimatorStateTransition existing in sm.anyStateTransitions.Where(t => t.destinationState == destination).ToList())
@@ -157,7 +165,18 @@ namespace ToonBossRush.Editor
             AnimatorStateTransition transition = sm.AddAnyStateTransition(destination);
             transition.hasExitTime = false;
             transition.duration = 0.1f;
+            transition.offset = offset;
             transition.canTransitionToSelf = false;
+
+            // 2026-09-20: 기본값 None이면, 이미 시작된 AnyState 전환(예: Walking→TurnRight)이
+            // 도중에 조건이 반대로 바뀌어도(예: 회전이 빨라 TurnAngle이 곧장 임계값 밑으로 복귀)
+            // 절대 중간에 취소되지 않고 무조건 끝까지 재생된 뒤에야 복귀 전환이 시작됨 —
+            // 순간적인 각도 스파이크 한 프레임이 최소 duration*2(약 0.2초)짜리 Turn 포즈
+            // "왕복"으로 증폭되어, 실제로는 방향 전환이 없었는데도 몸이 잠깐 좌우로
+            // 튀는 것처럼 보이는 원인이었음. Source(전환 시작 시점의 원래 상태 기준)로
+            // 바꾸면 진행 중인 전환도 다른 AnyState 조건이 참이 되는 즉시 인터럽트될 수
+            // 있어 이 "강제 완주"가 사라짐.
+            transition.interruptionSource = TransitionInterruptionSource.Source;
 
             foreach ((string param, AnimatorConditionMode mode, float threshold) in conditions)
             {

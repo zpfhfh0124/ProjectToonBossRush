@@ -12,7 +12,10 @@ namespace ToonBossRush.Player
     public class PlayerController : MonoBehaviour
     {
         [Header("이동")]
-        [SerializeField] private float moveSpeed = 5f;
+        // 2026-09-18: 5 → 1.8로 낮춤. moveSpeed가 referenceWalkClipSpeed(1.5)보다
+        // 훨씬 커서 AnimSpeedMultiplier가 3.33배까지 올라가 다리가 빠르게 감기는(너무 빨리 걷는)
+        // 것처럼 보였음. 1.8이면 배율이 1.2배 정도로 줄어 눈에 거의 안 띔("속도 정상화").
+        [SerializeField] private float moveSpeed = 1.8f;
         [SerializeField] private float rotationSpeed = 720f; // deg/sec
         [SerializeField] private float gravity = -20f;
 
@@ -46,6 +49,7 @@ namespace ToonBossRush.Player
         private Vector3 _dodgeDirection;
         private float _dodgeTimer;
         private float _dodgeCooldownTimer;
+        private bool _wasMoving; // 직전 프레임에 이동 입력이 있었는지 (정지→이동 전환 감지용)
 
         private void Awake()
         {
@@ -91,6 +95,7 @@ namespace ToonBossRush.Player
 
             if (inputDir.sqrMagnitude < 0.001f)
             {
+                _wasMoving = false;
                 animator?.SetFloat("MoveSpeed", 0f);
                 animator?.SetFloat("TurnAngle", 0f);
                 animator?.SetFloat("AnimSpeedMultiplier", 1f);
@@ -104,16 +109,34 @@ namespace ToonBossRush.Player
             Vector3 camRight = cameraTransform != null ? Vector3.ProjectOnPlane(cameraTransform.right, Vector3.up).normalized : Vector3.right;
             Vector3 moveDir = (camForward * inputDir.z + camRight * inputDir.x).normalized;
 
-            // 회전이 moveDir을 따라잡기 전, "몸이 향한 방향"과 "실제 이동 방향"의 오차각.
-            // rotationSpeed로 인해 방향을 급하게 꺾을수록 이 값이 순간적으로 커졌다가
-            // 몸이 회전을 따라잡으며 매 프레임 자연스럽게 0으로 수렴함 — 이 수렴 과정을
-            // Turn/Strafe 애니메이션 전환의 트리거로 사용(양수=오른쪽으로 꺾어야 함).
-            float signedTurnAngle = Vector3.SignedAngle(transform.forward, moveDir, Vector3.up);
+            float signedTurnAngle;
+
+            if (!_wasMoving)
+            {
+                // 정지(Idle) 상태에서 막 이동을 시작하는 첫 프레임.
+                // Idle 때 우연히 보고 있던 transform.forward와 새 moveDir 사이의
+                // 오차가 그대로 TurnAngle로 들어가면, 직선으로 걷기 시작했을 뿐인데도
+                // 그 오차가 35도(TurnThreshold)를 넘어 TurnRight/TurnLeft 애니메이션이
+                // 한 프레임 잘못 트리거되는 문제가 있었음(2026-09-20 확인).
+                // → 이동 시작 순간에는 회전을 점진적으로 따라잡지 않고 moveDir로 즉시
+                // 정렬해서 오차각 자체가 발생하지 않도록 함.
+                transform.rotation = Quaternion.LookRotation(moveDir, Vector3.up);
+                signedTurnAngle = 0f;
+                _wasMoving = true;
+            }
+            else
+            {
+                // 회전이 moveDir을 따라잡기 전, "몸이 향한 방향"과 "실제 이동 방향"의 오차각.
+                // rotationSpeed로 인해 방향을 급하게 꺾을수록 이 값이 순간적으로 커졌다가
+                // 몸이 회전을 따라잡으며 매 프레임 자연스럽게 0으로 수렴함 — 이 수렴 과정을
+                // Turn/Strafe 애니메이션 전환의 트리거로 사용(양수=오른쪽으로 꺾어야 함).
+                signedTurnAngle = Vector3.SignedAngle(transform.forward, moveDir, Vector3.up);
+
+                Quaternion targetRot = Quaternion.LookRotation(moveDir, Vector3.up);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
+            }
 
             _controller.Move(moveDir * moveSpeed * Time.deltaTime);
-
-            Quaternion targetRot = Quaternion.LookRotation(moveDir, Vector3.up);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
 
             animator?.SetFloat("MoveSpeed", moveDir.magnitude);
             animator?.SetFloat("TurnAngle", signedTurnAngle);
