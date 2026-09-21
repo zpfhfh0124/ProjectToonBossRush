@@ -48,7 +48,7 @@ namespace ToonBossRush.Core
         [Tooltip("비워두면 boss.gameObject를 그대로 활성/비활성 대상으로 사용")]
         public GameObject rootToActivate;
 
-        public GameObject Root => rootToActivate != null ? rootToActivate : boss?.gameObject;
+        public GameObject Root => rootToActivate != null ? rootToActivate : (boss != null ? boss.gameObject : null);
     }
 
     /// <summary>
@@ -142,7 +142,10 @@ namespace ToonBossRush.Core
 
             foreach (var e in encounters)
             {
-                e.boss?.ResetEncounter();
+                // 2026-09-21: UnityEngine.Object에 ?. 를 쓰면, 인스펙터에서 비워둔(None) 참조가
+                // 씬 로드/재직렬화 시 "진짜 null"이 아니라 유니티의 페이크 null 래퍼로 들어와
+                // UnassignedReferenceException이 나는 경우가 있어(BossStateMachine.animator에서 실제로 발생) 이 파일도 함께 정리.
+                if (e.boss != null) e.boss.ResetEncounter();
                 if (e.Root != null) e.Root.SetActive(false);
             }
 

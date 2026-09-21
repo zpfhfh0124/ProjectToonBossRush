@@ -94,7 +94,7 @@ namespace ToonBossRush.Boss
         {
             CurrentState = BossState.Idle;
             _stateTimer = idleDurationBeforeAttack;
-            animator?.SetTrigger("Idle");
+            if (animator != null) animator.SetTrigger("Idle");
         }
 
         private void EnterTelegraph()
@@ -109,7 +109,7 @@ namespace ToonBossRush.Boss
 
             CurrentState = BossState.Telegraph;
             _stateTimer = _currentPattern.telegraphDuration;
-            animator?.SetTrigger("Telegraph");
+            if (animator != null) animator.SetTrigger("Telegraph");
             // TODO: 여기서 텔레그래프 VFX(경고 링, 색 변화 등)를 트리거하면
             // 플레이어가 회피 타이밍을 읽을 수 있는 정보를 준다.
         }
@@ -119,30 +119,47 @@ namespace ToonBossRush.Boss
             CurrentState = BossState.Attack;
             _stateTimer = _currentPattern.attackDuration;
             if (attackHitbox != null) attackHitbox.Damage = _currentPattern.damage;
-            animator?.SetTrigger(_currentPattern.animatorTrigger);
+            if (animator != null) animator.SetTrigger(_currentPattern.animatorTrigger);
             _lastUsedTime[_currentPattern] = Time.time;
-            // 실제 히트박스 on/off는 애니메이션 이벤트 -> HitboxController.Activate/Deactivate 로 연결
+            // 실제 히트박스 on/off는 애니메이션 이벤트 -> HitboxController.Activate/Deactivate 로 연결하는 게 최종 형태(주석 유지).
+            // 2026-09-21 추가: 보스 애니메이션 클립/이벤트가 아직 없는 프로토타입 단계라,
+            // PlayerCombat의 기존 임시 Invoke 패턴과 동일하게 Attack 상태 지속 시간에 맞춰
+            // 직접 켜고 끔 — 클립 이벤트를 연결하면 아래 두 줄은 지우고 이벤트로 교체할 것.
+            if (attackHitbox != null)
+            {
+                attackHitbox.Activate();
+                Invoke(nameof(DeactivateAttackHitbox), _currentPattern.attackDuration);
+            }
+        }
+
+        private void DeactivateAttackHitbox()
+        {
+            if (attackHitbox != null) attackHitbox.Deactivate();
         }
 
         private void EnterRecover()
         {
             CurrentState = BossState.Recover;
             _stateTimer = _currentPattern.recoverDuration;
-            animator?.SetTrigger("Recover");
+            if (animator != null) animator.SetTrigger("Recover");
         }
 
         private void HandleStaggered()
         {
             if (CurrentState == BossState.Dead) return;
+            // 공격 중간에 스태거로 끊겼는데 히트박스가 켜진 채로 남는 걸 방지(2026-09-21).
+            CancelInvoke(nameof(DeactivateAttackHitbox));
+            if (attackHitbox != null) attackHitbox.Deactivate();
             CurrentState = BossState.Stagger;
             _stateTimer = staggerDuration;
-            animator?.SetTrigger("Stagger");
+            if (animator != null) animator.SetTrigger("Stagger");
         }
 
         private void HandleDied()
         {
+            CancelInvoke(nameof(DeactivateAttackHitbox));
             CurrentState = BossState.Dead;
-            animator?.SetTrigger("Dead");
+            if (animator != null) animator.SetTrigger("Dead");
             if (attackHitbox != null) attackHitbox.Deactivate();
         }
 
