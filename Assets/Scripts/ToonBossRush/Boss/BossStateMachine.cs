@@ -22,6 +22,11 @@ namespace ToonBossRush.Boss
 
         public BossState CurrentState { get; private set; } = BossState.Idle;
 
+        // 2026-09-20: GameFlowManager가 "이 보스가 죽으면 다음 인카운터로 넘어간다"를
+        // 판단하려면 보스의 Health에 접근해야 하는데, 지금까지는 이 컴포넌트 안에서만
+        // private으로 들고 있었음 — 게임 플로우 상위 로직에서 구독할 수 있도록 공개.
+        public Health Health => _health;
+
         private Health _health;
         private float _stateTimer;
         private BossAttackPatternSO _currentPattern;
@@ -59,6 +64,30 @@ namespace ToonBossRush.Boss
                     EnterIdle();
                     break;
             }
+        }
+
+        /// <summary>
+        /// GameFlowManager가 이 보스의 인카운터를 시작시킬 때 호출.
+        /// 지금은 EnterIdle()과 동일하지만, 나중에 "보스 등장" 연출(카메라 팬, 등장 애니메이션 트리거 등)을
+        /// 붙일 자리로 이 메서드를 따로 유지한다 — 호출부(GameFlowManager)를 바꿀 필요 없이 내부만 확장 가능.
+        /// </summary>
+        public void BeginEncounter()
+        {
+            EnterIdle();
+        }
+
+        /// <summary>
+        /// 재도전(Retry)/런 재시작 시 체력·상태·패턴 재사용 기록을 전부 초기 상태로 되돌린다.
+        /// GameFlowManager.StartRun()에서 모든 인카운터에 대해 한 번씩 호출.
+        /// </summary>
+        public void ResetEncounter()
+        {
+            _health.ResetHealth();
+            _lastUsedTime.Clear();
+            _currentPattern = null;
+            _stateTimer = idleDurationBeforeAttack;
+            CurrentState = BossState.Idle;
+            if (attackHitbox != null) attackHitbox.Deactivate();
         }
 
         private void EnterIdle()

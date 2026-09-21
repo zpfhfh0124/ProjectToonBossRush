@@ -194,5 +194,24 @@ namespace ToonBossRush.Player
             _verticalVelocity.y += gravity * Time.deltaTime;
             _controller.Move(_verticalVelocity * Time.deltaTime);
         }
+
+        /// <summary>
+        /// 2026-09-20 추가: 게임 플로우(런 시작/재도전)에서 플레이어를 스폰 지점으로
+        /// 안전하게 옮길 때 사용. CharacterController가 켜진 상태에서 transform을 직접
+        /// 건드리면 다음 프레임 충돌 보정이 어긋날 수 있어, 잠깐 비활성화한 뒤 옮기고
+        /// 다시 켠다. 회피/낙하 등 이동 관련 내부 상태도 함께 초기화해서, 예를 들어
+        /// 회피 중 사망 → 재도전으로 이어지는 경우에도 이상한 잔여 상태 없이 시작하게 한다.
+        /// </summary>
+        public void Teleport(Vector3 position, Quaternion rotation)
+        {
+            IsDodging = false;
+            IsInvincible = false;
+            _wasMoving = false;
+            _verticalVelocity = Vector3.zero;
+
+            _controller.enabled = false;
+            transform.SetPositionAndRotation(position, rotation);
+            _controller.enabled = true;
+        }
     }
 }
