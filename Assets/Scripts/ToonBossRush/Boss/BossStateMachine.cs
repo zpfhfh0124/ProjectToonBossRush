@@ -121,15 +121,25 @@ namespace ToonBossRush.Boss
             if (attackHitbox != null) attackHitbox.Damage = _currentPattern.damage;
             if (animator != null) animator.SetTrigger(_currentPattern.animatorTrigger);
             _lastUsedTime[_currentPattern] = Time.time;
-            // 실제 히트박스 on/off는 애니메이션 이벤트 -> HitboxController.Activate/Deactivate 로 연결하는 게 최종 형태(주석 유지).
-            // 2026-09-21 추가: 보스 애니메이션 클립/이벤트가 아직 없는 프로토타입 단계라,
-            // PlayerCombat의 기존 임시 Invoke 패턴과 동일하게 Attack 상태 지속 시간에 맞춰
-            // 직접 켜고 끔 — 클립 이벤트를 연결하면 아래 두 줄은 지우고 이벤트로 교체할 것.
-            if (attackHitbox != null)
+            // 2026-09-25: 애니메이터가 있으면 히트박스 on/off는 공격 클립의 애니메이션 이벤트
+            // (BossAnimationEventRelay -> SetAttackHitboxActive)가 실제 타격 프레임에 맞춰 처리.
+            // 애니메이터 없는 캡슐 프로토타입 보스만 기존 임시 방식(Attack 상태 지속 시간 동안 켜둠)으로 동작.
+            if (animator == null && attackHitbox != null)
             {
                 attackHitbox.Activate();
                 Invoke(nameof(DeactivateAttackHitbox), _currentPattern.attackDuration);
             }
+        }
+
+        /// <summary>
+        /// 공격 클립의 애니메이션 이벤트에서 호출(BossAnimationEventRelay 경유).
+        /// 스태거/사망으로 공격이 끊긴 뒤 크로스페이드 중에 이벤트가 늦게 들어와도 무시하도록 Attack 상태일 때만 켬.
+        /// </summary>
+        public void SetAttackHitboxActive(bool active)
+        {
+            if (attackHitbox == null) return;
+            if (active && CurrentState == BossState.Attack) attackHitbox.Activate();
+            else attackHitbox.Deactivate();
         }
 
         private void DeactivateAttackHitbox()
@@ -141,7 +151,9 @@ namespace ToonBossRush.Boss
         {
             CurrentState = BossState.Recover;
             _stateTimer = _currentPattern.recoverDuration;
-            if (animator != null) animator.SetTrigger("Recover");
+            // 2026-09-25: Recover 애니메이션 트리거는 보내지 않음 — 공격 클립 뒷부분에 회복(자세 복귀) 동작이
+            // 이미 들어 있어서, 패턴의 attackDuration + recoverDuration을 클립 길이에 맞추고
+            // Recover 구간은 "클립 후반부를 그대로 재생하는 반격 기회" 로직 상태로만 씀.
         }
 
         private void HandleStaggered()

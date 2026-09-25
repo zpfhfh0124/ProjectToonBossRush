@@ -20,7 +20,7 @@ namespace ToonBossRush.Editor
     public static class PlayerAnimatorWalkClipBuilder
     {
         private const string ControllerPath = "Assets/_Project/Animator/PlayerAnimator.controller";
-        private const string NewWalkClipPath = "Assets/_Project/Art/Animations/Walking.fbx";
+        private const string NewWalkClipPath = "Assets/_Project/Art/Animations/Player/Walking.fbx";
 
         [MenuItem("ToonBossRush/Player/Set Walking Clip")]
         public static void SetWalkingClip()
