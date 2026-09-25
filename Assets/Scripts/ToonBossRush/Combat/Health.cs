@@ -17,6 +17,15 @@ namespace ToonBossRush.Combat
         public float CurrentHealth { get; private set; }
         public bool IsDead { get; private set; }
 
+        /// <summary>
+        /// 2026-09-21 추가: 회피 무적 프레임(PlayerController.IsInvincible) 등 "지금은 데미지를
+        /// 받지 않는다"는 외부 상태를 반영하는 범용 플래그. Health는 플레이어/보스 공용이라
+        /// PlayerController를 직접 참조하지 않고, 대신 이 값을 켜고 끄는 쪽(PlayerController)이
+        /// 매 프레임 동기화해서 쓰는 구조 — 보스 쪽에도 나중에 무적 구간(예: 등장 연출 중)이
+        /// 생기면 그대로 재사용 가능.
+        /// </summary>
+        public bool IsInvincible { get; set; }
+
         private float _staggerAccum;
 
         /// <param name="amount">받은 데미지</param>
@@ -40,7 +49,7 @@ namespace ToonBossRush.Combat
 
         public void ApplyDamage(float amount, Vector3 hitPoint)
         {
-            if (IsDead || amount <= 0f) return;
+            if (IsDead || IsInvincible || amount <= 0f) return;
 
             CurrentHealth = Mathf.Max(0f, CurrentHealth - amount);
             _staggerAccum += amount;

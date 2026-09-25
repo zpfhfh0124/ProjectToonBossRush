@@ -65,8 +65,11 @@ namespace ToonBossRush.Player
             _isAttacking = true;
             if (lightHitbox != null)
                 lightHitbox.Damage = lightComboDamage[_comboIndex];
-            animator?.SetInteger("ComboIndex", _comboIndex);
-            animator?.SetTrigger("LightAttack");
+            if (animator != null)
+            {
+                animator.SetInteger("ComboIndex", _comboIndex);
+                animator.SetTrigger("LightAttack");
+            }
 
             _comboIndex = (_comboIndex + 1) % lightComboDamage.Length;
             _comboTimer = comboWindowSeconds;
@@ -74,6 +77,16 @@ namespace ToonBossRush.Player
             // 실제로는 애니메이션 이벤트로 EndAttack()을 호출해야 함(README 참고).
             // 클립이 아직 없다면 아래 임시 코루틴으로 테스트 가능.
             Invoke(nameof(EndAttack), 0.4f);
+
+            // 2026-09-21 추가: 히트박스 on/off도 원래는 애니메이션 이벤트(Activate/Deactivate)로
+            // 연결하는 게 최종 형태 — 아직 공격 클립에 이벤트가 없어서, 위 EndAttack과 같은 방식으로
+            // 임시 타이머로 대신 켜고 끔. 클립 이벤트를 연결하면 아래 Invoke 2줄은 지우고
+            // 클립 쪽에서 lightHitbox.Activate()/Deactivate()를 직접 호출하도록 교체할 것.
+            if (lightHitbox != null)
+            {
+                Invoke(nameof(ActivateLightHitbox), 0.1f);
+                Invoke(nameof(DeactivateLightHitbox), 0.3f);
+            }
         }
 
         private void DoHeavyAttack()
@@ -81,11 +94,23 @@ namespace ToonBossRush.Player
             _isAttacking = true;
             if (heavyHitbox != null)
                 heavyHitbox.Damage = heavyDamage;
-            animator?.SetTrigger("HeavyAttack");
+            if (animator != null) animator.SetTrigger("HeavyAttack");
             _comboIndex = 0;
 
             Invoke(nameof(EndAttack), 0.6f);
+
+            // 2026-09-21 추가: DoLightAttack과 동일한 임시 처리(위 주석 참고)
+            if (heavyHitbox != null)
+            {
+                Invoke(nameof(ActivateHeavyHitbox), 0.15f);
+                Invoke(nameof(DeactivateHeavyHitbox), 0.45f);
+            }
         }
+
+        private void ActivateLightHitbox() => lightHitbox.Activate();
+        private void DeactivateLightHitbox() => lightHitbox.Deactivate();
+        private void ActivateHeavyHitbox() => heavyHitbox.Activate();
+        private void DeactivateHeavyHitbox() => heavyHitbox.Deactivate();
 
         /// <summary>애니메이션 이벤트(공격 클립 마지막 프레임)에서 호출하도록 연결 권장</summary>
         public void EndAttack()

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using ToonBossRush.Combat;
 
 namespace ToonBossRush.Player
 {
@@ -44,6 +45,7 @@ namespace ToonBossRush.Player
         public bool CanAct => !IsDodging; // 공격 시스템에서 참조
 
         private CharacterController _controller;
+        private Health _health; // 2026-09-21 추가: 회피 무적 프레임을 Health.IsInvincible에 동기화하기 위함(선택적 — 없으면 무시)
         private InputSystem_Actions _inputActions;
         private Vector3 _verticalVelocity;
         private Vector3 _dodgeDirection;
@@ -54,6 +56,7 @@ namespace ToonBossRush.Player
         private void Awake()
         {
             _controller = GetComponent<CharacterController>();
+            _health = GetComponent<Health>();
             _inputActions = new InputSystem_Actions();
 
             if (cameraTransform == null && UnityEngine.Camera.main != null)
@@ -96,9 +99,12 @@ namespace ToonBossRush.Player
             if (inputDir.sqrMagnitude < 0.001f)
             {
                 _wasMoving = false;
-                animator?.SetFloat("MoveSpeed", 0f);
-                animator?.SetFloat("TurnAngle", 0f);
-                animator?.SetFloat("AnimSpeedMultiplier", 1f);
+                if (animator != null)
+                {
+                    animator.SetFloat("MoveSpeed", 0f);
+                    animator.SetFloat("TurnAngle", 0f);
+                    animator.SetFloat("AnimSpeedMultiplier", 1f);
+                }
                 return;
             }
 
@@ -138,14 +144,16 @@ namespace ToonBossRush.Player
 
             _controller.Move(moveDir * moveSpeed * Time.deltaTime);
 
-            animator?.SetFloat("MoveSpeed", moveDir.magnitude);
-            animator?.SetFloat("TurnAngle", signedTurnAngle);
-
             // 실제 이동 속도(moveSpeed)와 클립이 표현하는 보폭 속도(referenceWalkClipSpeed)의
             // 비율로 클립 재생 속도를 보정 — Animator 쪽 상태의 Speed Parameter가
             // AnimSpeedMultiplier로 연결돼 있어야 실제로 적용됨(빌더 스크립트 참고).
             float animSpeedMultiplier = referenceWalkClipSpeed > 0.001f ? moveSpeed / referenceWalkClipSpeed : 1f;
-            animator?.SetFloat("AnimSpeedMultiplier", animSpeedMultiplier);
+            if (animator != null)
+            {
+                animator.SetFloat("MoveSpeed", moveDir.magnitude);
+                animator.SetFloat("TurnAngle", signedTurnAngle);
+                animator.SetFloat("AnimSpeedMultiplier", animSpeedMultiplier);
+            }
         }
 
         private void HandleDodgeInput()
@@ -165,13 +173,14 @@ namespace ToonBossRush.Player
             IsDodging = true;
             _dodgeTimer = 0f;
             _dodgeCooldownTimer = dodgeCooldown;
-            animator?.SetTrigger("Dodge");
+            if (animator != null) animator.SetTrigger("Dodge");
         }
 
         private void TickDodge()
         {
             _dodgeTimer += Time.deltaTime;
             IsInvincible = _dodgeTimer <= dodgeInvincibleWindow;
+            if (_health != null) _health.IsInvincible = IsInvincible;
 
             float t = Mathf.Clamp01(_dodgeTimer / dodgeDuration);
             // ease-out 느낌으로 구르는 속도 감소
@@ -182,6 +191,7 @@ namespace ToonBossRush.Player
             {
                 IsDodging = false;
                 IsInvincible = false;
+                if (_health != null) _health.IsInvincible = false;
             }
         }
 
@@ -206,6 +216,7 @@ namespace ToonBossRush.Player
         {
             IsDodging = false;
             IsInvincible = false;
+            if (_health != null) _health.IsInvincible = false;
             _wasMoving = false;
             _verticalVelocity = Vector3.zero;
 
