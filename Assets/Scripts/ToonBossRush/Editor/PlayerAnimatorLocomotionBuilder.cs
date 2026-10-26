@@ -16,7 +16,7 @@ namespace ToonBossRush.Editor
     ///   MoveSpeed 조건 때문에 Idle/Running으로 곧장 덮어써짐.
     /// - 공격 상태에는 "Attack" 태그를 붙임. PlayerCombat이 이 태그 상태가 끝나는 시점을
     ///   공격 종료로 판단함(Exit Time으로 Idle 복귀).
-    /// - Running.fbx / Jump.fbx는 아직 없을 수 있음(Mixamo에서 받아 Art/Animations에 넣으면 됨).
+    /// - Running.fbx / Jump.fbx는 아직 없을 수 있음(Mixamo에서 받아 Art/Animations/Player에 넣으면 됨).
     ///   없으면 Running은 Walking 클립으로 임시 대체, Jump 상태는 건너뜀.
     ///   새로 넣은 FBX는 이 스크립트가 Humanoid 리그/루프 설정까지 맞춰줌.
     /// 메뉴: ToonBossRush > Player > Build Locomotion & Action States
@@ -25,7 +25,7 @@ namespace ToonBossRush.Editor
     public static class PlayerAnimatorLocomotionBuilder
     {
         private const string ControllerPath = "Assets/_Project/Animator/PlayerAnimator.controller";
-        private const string AnimFolder = "Assets/_Project/Art/Animations/";
+        private const string AnimFolder = "Assets/_Project/Art/Animations/Player/";
 
         private const string RunClipFile = "Running.fbx";
         private const string JumpClipFile = "Jump.fbx";
