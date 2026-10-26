@@ -17,8 +17,8 @@ MonoBehaviour:
     \uD328\uD134 \u2014 \uC2E4\uC81C \uBCF4\uC2A4 \uC560\uB2C8\uBA54\uC774\uC158/\uBC38\uB7F0\uC2A4
     \uD655\uC815\uB418\uBA74 \uC218\uCE58 \uC870\uC815 \uD544\uC694."
   telegraphDuration: 1
-  attackDuration: 0.6
-  recoverDuration: 0.8
+  attackDuration: 1.8
+  recoverDuration: 1.9
   damage: 20
   minReuseInterval: 3
   animatorTrigger: AttackA

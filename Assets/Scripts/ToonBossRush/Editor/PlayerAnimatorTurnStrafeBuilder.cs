@@ -20,7 +20,7 @@ namespace ToonBossRush.Editor
     public static class PlayerAnimatorTurnStrafeBuilder
     {
         private const string ControllerPath = "Assets/_Project/Animator/PlayerAnimator.controller";
-        private const string AnimFolder = "Assets/_Project/Art/Animations/";
+        private const string AnimFolder = "Assets/_Project/Art/Animations/Player/";
 
         // 오차각 임계값 (도) — Play 테스트하면서 취향껏 조정 권장
         private const float TurnThreshold = 35f;   // 이 각도 미만이면 Walking 유지
@@ -53,7 +53,7 @@ namespace ToonBossRush.Editor
 
             if (turnLeftClip == null || turnRightClip == null || strafeLeftClip == null || strafeRightClip == null)
             {
-                Debug.LogError("[PlayerAnimatorTurnStrafeBuilder] 일부 애니메이션 클립을 찾지 못했습니다 — 위 경고 로그를 확인하고 Art/Animations 폴더 배치를 다시 확인해주세요.");
+                Debug.LogError("[PlayerAnimatorTurnStrafeBuilder] 일부 애니메이션 클립을 찾지 못했습니다 — 위 경고 로그를 확인하고 Art/Animations/Player 폴더 배치를 다시 확인해주세요.");
                 return;
             }
 

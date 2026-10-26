@@ -63,9 +63,9 @@ namespace ToonBossRush.Editor
             ClearBossBattlePrototype();
 
             BossAttackPatternSO patternA = CreateOrLoadPattern(
-                "BossA_HeavySlam", "육중한 내려찍기", telegraph: 1.0f, attack: 0.6f, recover: 0.8f, damage: 20f, minReuse: 3f, trigger: "AttackA");
+                "BossA_HeavySlam", "육중한 내려찍기", telegraph: 1.0f, attack: 1.8f, recover: 1.9f, damage: 20f, minReuse: 3f, trigger: "AttackA");
             BossAttackPatternSO patternB = CreateOrLoadPattern(
-                "BossA_WideSweep", "넓은 휩쓸기", telegraph: 0.9f, attack: 0.7f, recover: 0.9f, damage: 15f, minReuse: 3.5f, trigger: "AttackB");
+                "BossA_WideSweep", "넓은 휩쓸기", telegraph: 0.9f, attack: 1.45f, recover: 1.2f, damage: 15f, minReuse: 3.5f, trigger: "AttackB");
             AssetDatabase.SaveAssets();
 
             BossStateMachine boss = CreateBoss(bossSpawn.transform, bossLayer, playerLayer, patternA, patternB);
