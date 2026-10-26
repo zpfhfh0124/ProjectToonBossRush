@@ -18,7 +18,9 @@ namespace ToonBossRush.Camera
         [SerializeField] private Vector3 targetOffset = new Vector3(0f, 1.6f, 0f);
 
         [Header("오빗")]
-        [SerializeField] private float mouseSensitivity = 2.5f;
+        // 2026-10-26: 2.5 → 0.2. Pointer/delta는 픽셀 단위라 2.5면 마우스 1px에 카메라가 2.5° 돌았음 —
+        // 이동이 카메라 기준이라 손이 살짝만 떨려도 달리는 캐릭터가 좌우로 꺾여 지그재그로 보였음(Play 기록으로 확인).
+        [SerializeField] private float mouseSensitivity = 0.2f;
         [SerializeField] private float minPitch = -25f;
         [SerializeField] private float maxPitch = 65f;
         [SerializeField] private float startYaw = 0f;
