@@ -924,74 +924,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 401434417}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1001 &406214069
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 1830042185329341124, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
-      propertyPath: m_Name
-      value: Boss_InfernoWolf
-      objectReference: {fileID: 0}
-    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 8
-      objectReference: {fileID: 0}
-    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: -0.00000004371139
-      objectReference: {fileID: 0}
-    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
---- !u!114 &406214070 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 9159088688336816939, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
-  m_PrefabInstance: {fileID: 406214069}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e310a5031dd83be4a9f0e7e9b2601737, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ToonBossRush.Boss.BossStateMachine
 --- !u!1 &469317487
 GameObject:
   m_ObjectHideFlags: 0
@@ -2050,7 +1982,7 @@ MonoBehaviour:
   playerSpawnPoint: {fileID: 1129450202}
   encounters:
   - displayName: "\uBD88\uAF43\uB291\uB300 (InfernoWolf)"
-    boss: {fileID: 406214070}
+    boss: {fileID: 1714630966}
     rootToActivate: {fileID: 0}
   introDelaySeconds: 1.5
   transitionDelaySeconds: 1.5
@@ -3487,6 +3419,74 @@ Material:
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
+--- !u!1001 &1714630965
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1830042185329341124, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
+      propertyPath: m_Name
+      value: Boss_InfernoWolf
+      objectReference: {fileID: 0}
+    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.00000004371139
+      objectReference: {fileID: 0}
+    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4622884749315175495, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
+--- !u!114 &1714630966 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9159088688336816939, guid: c75027da746967c48b3795fd6f559ed1, type: 3}
+  m_PrefabInstance: {fileID: 1714630965}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e310a5031dd83be4a9f0e7e9b2601737, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ToonBossRush.Boss.BossStateMachine
 --- !u!21 &1752603693
 Material:
   serializedVersion: 8
@@ -5375,4 +5375,4 @@ SceneRoots:
   - {fileID: 1040432571}
   - {fileID: 1901810861}
   - {fileID: 1014092288}
-  - {fileID: 406214069}
+  - {fileID: 1714630965}

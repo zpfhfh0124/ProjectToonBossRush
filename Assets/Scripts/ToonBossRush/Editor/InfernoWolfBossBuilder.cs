@@ -13,6 +13,7 @@ namespace ToonBossRush.Editor
     /// 캡슐 플레이스홀더(Boss_Prototype) 자리를 실제 보스 InfernoWolf로 교체하는 에디터 툴.
     ///
     /// 메뉴 한 번(Build InfernoWolf Boss)으로:
+    ///   0) FBX 임베디드 텍스처 추출 + ToonLit 머티리얼(M_Boss_InfernoWolf) 생성/리맵
     ///   1) Boss_InfernoWolf 프리팹 생성/갱신 (Assets/_Project/Prefabs)
     ///      - 루트: Health / BossStateMachine / 피격용 CapsuleCollider / 키네마틱 Rigidbody (Boss 레이어)
     ///      - Model 자식: 보스 FBX + Animator(BossAnimator_InfernoWolf) + BossAnimationEventRelay
@@ -35,6 +36,9 @@ namespace ToonBossRush.Editor
         private const string PrefabPath = PrefabFolder + "/Boss_InfernoWolf.prefab";
         private const string PatternFolder = "Assets/_Project/Data/BossPatterns";
         private const string StageScenePath = "Assets/Scenes/01_Stage.unity";
+        private const string TextureFolder = "Assets/_Project/Art/Character/Textures/InfernoWolf";
+        private const string MaterialPath = "Assets/_Project/Art/Character/Materials/M_Boss_InfernoWolf.mat";
+        private const string ToonShaderName = "ToonBossRush/ToonLit";
 
         private const string BossName = "Boss_InfernoWolf";
         private const string PrototypeBossName = "Boss_Prototype";
@@ -66,6 +70,8 @@ namespace ToonBossRush.Editor
                 return;
             }
 
+            if (!ConfigureMaterial()) return;
+
             GameObject prefab = BuildPrefab(playerLayer, bossLayer);
             if (prefab == null) return;
 
@@ -84,6 +90,76 @@ namespace ToonBossRush.Editor
             Build();
             EditorSceneManager.SaveOpenScenes();
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// Meshy가 FBX 안에 텍스처(base_color.png/normal.png)를 임베드해 내보내서, 임베디드 머티리얼만으로는
+        /// 텍스처가 연결되지 않음 — 텍스처를 폴더로 추출하고, ToonLit 머티리얼을 만들어 FBX 머티리얼을 리맵.
+        /// (ToonLit이어야 ToonHitFlash의 _HitFlashAmount 피격 플래시도 보임. ToonLit은 노멀맵을 안 써서 normal.png는 추출만 해둠)
+        /// </summary>
+        private static bool ConfigureMaterial()
+        {
+            ModelImporter importer = AssetImporter.GetAtPath(ModelPath) as ModelImporter;
+            Shader toonShader = Shader.Find(ToonShaderName);
+            if (importer == null || toonShader == null)
+            {
+                Debug.LogError($"[InfernoWolfBossBuilder] 보스 모델({ModelPath}) 또는 셰이더({ToonShaderName})를 찾을 수 없습니다.");
+                return false;
+            }
+
+            string baseColorPath = $"{TextureFolder}/base_color.png";
+            if (AssetDatabase.LoadAssetAtPath<Texture2D>(baseColorPath) == null)
+            {
+                EnsureFolder(TextureFolder);
+                importer.ExtractTextures(TextureFolder);
+                AssetDatabase.Refresh();
+            }
+
+            Texture2D baseColor = AssetDatabase.LoadAssetAtPath<Texture2D>(baseColorPath);
+            if (baseColor == null)
+            {
+                Debug.LogError($"[InfernoWolfBossBuilder] 임베디드 텍스처 추출 실패 — {baseColorPath}가 없습니다. FBX Inspector > Materials > Extract Textures를 확인해주세요.");
+                return false;
+            }
+
+            if (AssetImporter.GetAtPath($"{TextureFolder}/normal.png") is TextureImporter normalImporter
+                && normalImporter.textureType != TextureImporterType.NormalMap)
+            {
+                normalImporter.textureType = TextureImporterType.NormalMap;
+                normalImporter.SaveAndReimport();
+            }
+
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(MaterialPath);
+            if (material == null)
+            {
+                EnsureFolder(System.IO.Path.GetDirectoryName(MaterialPath).Replace('\\', '/'));
+                material = new Material(toonShader);
+                AssetDatabase.CreateAsset(material, MaterialPath);
+            }
+            material.shader = toonShader;
+            material.SetTexture("_BaseMap", baseColor);
+            material.SetColor("_BaseColor", Color.white);
+            EditorUtility.SetDirty(material);
+
+            // FBX 안의 원본 머티리얼(이미 리맵된 것 포함)을 전부 ToonLit 머티리얼로 리맵
+            var sourceNames = AssetDatabase.LoadAllAssetsAtPath(ModelPath).OfType<Material>().Select(m => m.name)
+                .Concat(importer.GetExternalObjectMap().Keys.Where(k => k.type == typeof(Material)).Select(k => k.name))
+                .Distinct().ToList();
+            foreach (string sourceName in sourceNames)
+            {
+                importer.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), sourceName), material);
+            }
+            importer.SaveAndReimport();
+            AssetDatabase.SaveAssets();
+            return true;
+        }
+
+        private static void EnsureFolder(string path)
+        {
+            if (AssetDatabase.IsValidFolder(path)) return;
+            string parent = System.IO.Path.GetDirectoryName(path).Replace('\\', '/');
+            EnsureFolder(parent);
+            AssetDatabase.CreateFolder(parent, System.IO.Path.GetFileName(path));
         }
 
         private static GameObject BuildPrefab(int playerLayer, int bossLayer)
@@ -120,7 +196,7 @@ namespace ToonBossRush.Editor
                 animator.cullingMode = AnimatorCullingMode.AlwaysAnimate; // 화면 밖에서도 애니메이션 이벤트(히트박스)가 빠지지 않게
                 modelGo.AddComponent<BossAnimationEventRelay>();
 
-                // 피격 플래시 — ToonLit 계열(_HitFlashAmount) 머티리얼일 때만 실제로 보임. 다른 셰이더면 무시됨.
+                // 피격 플래시 — ConfigureMaterial에서 리맵한 ToonLit 머티리얼의 _HitFlashAmount를 조작
                 foreach (Renderer r in modelGo.GetComponentsInChildren<Renderer>())
                 {
                     r.gameObject.AddComponent<ToonHitFlash>();
