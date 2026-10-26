@@ -107,6 +107,16 @@
                     "priority": 0
                 },
                 {
+                    "name": "Walk",
+                    "type": "Button",
+                    "id": "3b9d2f41-7c5e-4a8b-9e16-2f4c8d7a1b05",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
                     "name": "HeavyAttack",
                     "type": "Button",
                     "id": "ea7a6ff7-1b9e-4764-a4e8-688ef552cf75",
@@ -516,12 +526,12 @@
                 },
                 {
                     "name": "",
-                    "id": "53e1c2ea-96ed-4711-b38b-be62cdcc276d",
-                    "path": "<Keyboard>/space",
+                    "id": "c47e8a90-1d2b-4f6e-8a3c-5b9e0d7f2a14",
+                    "path": "<Keyboard>/leftCtrl",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
-                    "action": "Dodge",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "Walk",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
