@@ -6,8 +6,9 @@ namespace ToonBossRush.Player
 {
     /// <summary>
     /// 약공격 3단 콤보 + 강공격 1타.
-    /// 실제 히트박스 on/off는 애니메이션 이벤트가 HitboxController.Activate/Deactivate를 호출하는 구조.
-    /// (여기서는 콤보 타이밍/입력 버퍼만 담당)
+    /// 실제 히트박스 on/off는 공격 클립의 애니메이션 이벤트(AttackHitboxOn/AttackHitboxOff)가 담당.
+    /// 이벤트는 Animator가 붙은 오브젝트로만 전달되므로 이 컴포넌트는 Animator와 같은 오브젝트에 있어야 함.
+    /// (이벤트는 PlayerAnimatorLocomotionBuilder가 임포트 설정에 심음)
     /// New Input System(InputSystem_Actions) 기반: 약공격은 Player/Attack(좌클릭),
     /// 강공격은 Player/HeavyAttack(우클릭) 액션을 사용.
     /// 2026-10-26: 공격 종료를 고정 타이머(0.4/0.6초) 대신 Animator의 "Attack" 태그 상태가
@@ -38,6 +39,7 @@ namespace ToonBossRush.Player
         private bool _isAttacking;
         private bool _enteredAttackState;
         private float _attackElapsed;
+        private HitboxController _activeHitbox; // 현재 공격의 히트박스 — 약/강공격 클립이 같은 이벤트 이름을 공유
 
         private void Awake()
         {
@@ -113,14 +115,14 @@ namespace ToonBossRush.Player
             if (_comboIndex != 0 && state.normalizedTime >= comboInputNormalizedTime
                 && _inputActions.Player.Attack.WasPressedThisFrame())
             {
-                CancelPendingHitboxInvokes();
+                AttackHitboxOff(); // 캔슬되면 이전 클립의 Off 이벤트를 보장할 수 없음
                 DoLightAttack();
             }
         }
 
         private void DoLightAttack()
         {
-            BeginAttack();
+            BeginAttack(lightHitbox);
             if (lightHitbox != null)
                 lightHitbox.Damage = lightComboDamage[_comboIndex];
             if (animator != null)
@@ -131,36 +133,20 @@ namespace ToonBossRush.Player
 
             _comboIndex = (_comboIndex + 1) % lightComboDamage.Length;
             _comboTimer = comboWindowSeconds;
-
-            // 2026-09-21 추가: 히트박스 on/off도 원래는 애니메이션 이벤트(Activate/Deactivate)로
-            // 연결하는 게 최종 형태 — 아직 공격 클립에 이벤트가 없어서 임시 타이머로 대신 켜고 끔.
-            // 클립 이벤트를 연결하면 아래 Invoke 2줄은 지우고
-            // 클립 쪽에서 lightHitbox.Activate()/Deactivate()를 직접 호출하도록 교체할 것.
-            if (lightHitbox != null)
-            {
-                Invoke(nameof(ActivateLightHitbox), 0.25f);
-                Invoke(nameof(DeactivateLightHitbox), 0.5f);
-            }
         }
 
         private void DoHeavyAttack()
         {
-            BeginAttack();
+            BeginAttack(heavyHitbox);
             if (heavyHitbox != null)
                 heavyHitbox.Damage = heavyDamage;
             if (animator != null) animator.SetTrigger("HeavyAttack");
             _comboIndex = 0;
-
-            // 2026-09-21 추가: DoLightAttack과 동일한 임시 처리(위 주석 참고)
-            if (heavyHitbox != null)
-            {
-                Invoke(nameof(ActivateHeavyHitbox), 0.4f);
-                Invoke(nameof(DeactivateHeavyHitbox), 0.8f);
-            }
         }
 
-        private void BeginAttack()
+        private void BeginAttack(HitboxController hitbox)
         {
+            _activeHitbox = hitbox;
             _isAttacking = true;
             _enteredAttackState = false;
             _attackElapsed = 0f;
@@ -169,23 +155,24 @@ namespace ToonBossRush.Player
             if (animator != null) animator.SetBool("ActionLocked", true);
         }
 
-        private void CancelPendingHitboxInvokes()
+        /// <summary>공격 클립의 애니메이션 이벤트에서 호출 — 타격 구간 시작</summary>
+        public void AttackHitboxOn()
         {
-            CancelInvoke(nameof(ActivateLightHitbox));
-            CancelInvoke(nameof(DeactivateLightHitbox));
-            if (lightHitbox != null) lightHitbox.Deactivate();
+            if (_isAttacking && _activeHitbox != null) _activeHitbox.Activate();
         }
 
-        private void ActivateLightHitbox() => lightHitbox.Activate();
-        private void DeactivateLightHitbox() => lightHitbox.Deactivate();
-        private void ActivateHeavyHitbox() => heavyHitbox.Activate();
-        private void DeactivateHeavyHitbox() => heavyHitbox.Deactivate();
+        /// <summary>공격 클립의 애니메이션 이벤트에서 호출 — 타격 구간 끝</summary>
+        public void AttackHitboxOff()
+        {
+            if (_activeHitbox != null) _activeHitbox.Deactivate();
+        }
 
         /// <summary>
         /// 공격 상태 종료 시 자동 호출됨. 애니메이션 이벤트(공격 클립 마지막 프레임)에서 직접 호출해도 무방.
         /// </summary>
         public void EndAttack()
         {
+            AttackHitboxOff(); // 공격이 도중에 끊겨 Off 이벤트가 오지 않아도 히트박스가 켜진 채 남지 않게
             _isAttacking = false;
             _comboTimer = comboWindowSeconds;
         }

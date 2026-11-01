@@ -19,6 +19,7 @@ namespace ToonBossRush.Editor
     /// - Running.fbx / Jump.fbx는 아직 없을 수 있음(Mixamo에서 받아 Art/Animations/Player에 넣으면 됨).
     ///   없으면 Running은 Walking 클립으로 임시 대체, Jump 상태는 건너뜀.
     ///   새로 넣은 FBX는 이 스크립트가 Humanoid 리그/루프 설정까지 맞춰줌.
+    /// - 2026-11-01: 공격 클립에 히트박스 애니메이션 이벤트(AttackHitboxOn/Off)를 임포트 설정으로 심음.
     /// 메뉴: ToonBossRush > Player > Build Locomotion & Action States
     /// (재실행해도 안전 — 기존 상태/트랜지션을 찾아 갱신만 함)
     /// </summary>
@@ -38,6 +39,16 @@ namespace ToonBossRush.Editor
         };
         private const string HeavyAttackClipFile = "Sword And Shield Slash Combo.fbx";
 
+        // 클립 기준 히트박스 구간(초, 배속 적용 전). RightHandT 커브에서 손이 가장 빠른 구간을 측정한 값.
+        private static readonly (float on, float off)[] LightAttackHitWindows =
+        {
+            (0.50f, 0.72f),
+            (0.72f, 0.95f),
+            (1.22f, 1.42f),
+        };
+        // Slash Combo는 스윙이 4번 — 데미지가 4배가 되지 않도록 첫 스윙~마지막 스윙을 한 구간으로 묶어 1회만 적중
+        private static readonly (float on, float off) HeavyAttackHitWindow = (0.58f, 2.52f);
+
         // Mixamo 공격 클립은 1.5~3.5초로 액션 게임 템포에 비해 느려서 배속 재생.
         // Play 테스트하면서 취향껏 조정.
         private const float LightAttackPlaybackSpeed = 1.5f;
@@ -53,6 +64,12 @@ namespace ToonBossRush.Editor
         {
             ConfigureImporterIfPresent(RunClipFile, loop: true);
             ConfigureImporterIfPresent(JumpClipFile, loop: false);
+
+            for (int i = 0; i < LightAttackClipFiles.Length; i++)
+            {
+                ConfigureHitboxEvents(LightAttackClipFiles[i], LightAttackHitWindows[i]);
+            }
+            ConfigureHitboxEvents(HeavyAttackClipFile, HeavyAttackHitWindow);
 
             // 걷기 계열 먼저 갱신(ActionLocked / RunThreshold 조건 반영)
             PlayerAnimatorTurnStrafeBuilder.Build();
@@ -222,6 +239,53 @@ namespace ToonBossRush.Editor
             importer.clipAnimations = clips;
             importer.SaveAndReimport();
             Debug.Log($"[PlayerAnimatorLocomotionBuilder] {path} 임포트 설정을 Humanoid(loop={loop})로 변경했습니다.");
+        }
+
+        /// <summary>
+        /// 공격 클립의 타격 구간에 AttackHitboxOn/AttackHitboxOff 이벤트를 심음(수신: 같은 오브젝트의 PlayerCombat).
+        /// 이미 같은 이벤트가 있으면 재임포트하지 않음.
+        /// </summary>
+        private static void ConfigureHitboxEvents(string fbxFileName, (float on, float off) hitWindow)
+        {
+            string path = AnimFolder + fbxFileName;
+            if (!(AssetImporter.GetAtPath(path) is ModelImporter importer))
+            {
+                Debug.LogWarning($"[PlayerAnimatorLocomotionBuilder] 공격 클립을 찾을 수 없음: {path}");
+                return;
+            }
+
+            AnimationClip source = LoadClip(fbxFileName, warnIfMissing: true);
+            if (source == null) return;
+
+            bool changed = false;
+            ModelImporterClipAnimation[] clips = importer.clipAnimations;
+            if (clips == null || clips.Length == 0) clips = importer.defaultClipAnimations;
+            foreach (ModelImporterClipAnimation clip in clips)
+            {
+                // 임포터 이벤트 time은 0~1 정규화 값이라 클립 길이(초)로 나눠서 넣음
+                float length = (clip.lastFrame - clip.firstFrame) / source.frameRate;
+                float on = hitWindow.on / length;
+                float off = hitWindow.off / length;
+
+                AnimationEvent[] current = clip.events;
+                if (current.Length == 2
+                    && current[0].functionName == "AttackHitboxOn" && Mathf.Approximately(current[0].time, on)
+                    && current[1].functionName == "AttackHitboxOff" && Mathf.Approximately(current[1].time, off))
+                {
+                    continue;
+                }
+
+                clip.events = new[]
+                {
+                    new AnimationEvent { functionName = "AttackHitboxOn", time = on },
+                    new AnimationEvent { functionName = "AttackHitboxOff", time = off },
+                };
+                changed = true;
+            }
+
+            if (!changed) return;
+            importer.clipAnimations = clips;
+            importer.SaveAndReimport();
         }
 
         private static AnimationClip LoadClip(string fbxFileName, bool warnIfMissing)
