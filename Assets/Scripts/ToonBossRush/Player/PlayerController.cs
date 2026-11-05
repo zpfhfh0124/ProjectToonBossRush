@@ -41,8 +41,8 @@ namespace ToonBossRush.Player
         // 이동 상태의 Speed Parameter를 AnimSpeedMultiplier로 연결해두면
         // 이 값이 (실제 속도 / 기준 속도) 배율로 클립 재생 속도를 보정함.
         // 발이 계속 밀리면(체공감) 이 값을 낮추고, 반대로 발이 헛돌면(제자리걸음) 값을 높일 것.
-        [SerializeField] private float referenceWalkClipSpeed = 1.5f;
-        [SerializeField] private float referenceRunClipSpeed = 5f;
+        [SerializeField] private float referenceWalkClipSpeed = 1.1f; // 블렌더 제작 Walking.fbx: 보폭 1.1m/주기 1초
+        [SerializeField] private float referenceRunClipSpeed = 4f; // 블렌더 제작 Running.fbx: 보폭 2.67m/주기 20f(0.667s)
 
         [Header("회피")]
         [SerializeField] private float dodgeDistance = 4f;

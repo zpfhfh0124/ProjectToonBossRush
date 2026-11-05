@@ -1565,8 +1565,8 @@ MonoBehaviour:
   gravity: -20
   jumpHeight: 1.2
   airControl: 0.6
-  referenceWalkClipSpeed: 1.5
-  referenceRunClipSpeed: 5
+  referenceWalkClipSpeed: 1.1
+  referenceRunClipSpeed: 4
   dodgeDistance: 4
   dodgeDuration: 0.35
   dodgeInvincibleWindow: 0.25
