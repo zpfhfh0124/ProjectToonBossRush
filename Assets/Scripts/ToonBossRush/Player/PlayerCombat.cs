@@ -176,5 +176,27 @@ namespace ToonBossRush.Player
             _isAttacking = false;
             _comboTimer = comboWindowSeconds;
         }
+
+        /// <summary>
+        /// 재도전 등으로 플레이어를 리셋할 때 호출(PlayerController.Teleport에서 호출됨).
+        /// 사망 시점에 공격 중이었다면 _isAttacking이 남아 재도전 후 첫 입력이 무시될 수 있어서 추가.
+        /// </summary>
+        public void ResetCombatState()
+        {
+            AttackHitboxOff();
+            _activeHitbox = null;
+            _isAttacking = false;
+            _enteredAttackState = false;
+            _attackElapsed = 0f;
+            _comboIndex = 0;
+            _comboTimer = 0f;
+
+            if (animator != null)
+            {
+                animator.ResetTrigger("LightAttack");
+                animator.ResetTrigger("HeavyAttack");
+                animator.SetInteger("ComboIndex", 0);
+            }
+        }
     }
 }

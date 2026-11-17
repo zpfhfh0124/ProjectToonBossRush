@@ -277,6 +277,7 @@ namespace ToonBossRush.Player
             _wasMoving = false;
             _verticalVelocity = Vector3.zero;
             IsGrounded = true;
+            if (_combat != null) _combat.ResetCombatState(); // 공격 중 사망 → 재도전 시 콤보/공격 잠금 잔여 상태 제거
 
             _controller.enabled = false;
             transform.SetPositionAndRotation(position, rotation);
