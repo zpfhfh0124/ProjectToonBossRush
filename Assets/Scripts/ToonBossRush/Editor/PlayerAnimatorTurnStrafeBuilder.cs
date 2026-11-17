@@ -30,7 +30,11 @@ namespace ToonBossRush.Editor
         // 이 지점부터 재생 시작 — 이동을 시작하는 순간 이미 보폭 중간(발이 나가 있는 자세)부터
         // 보이게 해서 "움직이자마자 바로 발을 내딛는" 것처럼 느껴지게 함.
         // Play 테스트하면서 실제 클립에 맞게 0~1 사이로 취향껏 조정.
-        private const float MoveEntryOffset = 0.25f;
+        public const float MoveEntryOffset = 0.25f;
+
+        // 2026-10-26: 기본 이동이 달리기로 바뀌면서 MoveSpeed가 0(정지)/0.5(걷기)/1(달리기) 3단계가 됨.
+        // 이 값 이상이면 Running 상태(PlayerAnimatorLocomotionBuilder)가 담당하고, Turn/Strafe는 걷기 전용.
+        public const float RunThreshold = 0.75f;
 
         [MenuItem("ToonBossRush/Player/Build Turn-Strafe States")]
         public static void Build()
@@ -55,6 +59,7 @@ namespace ToonBossRush.Editor
 
             AddParameterIfMissing(controller, "TurnAngle", AnimatorControllerParameterType.Float);
             AddParameterIfMissing(controller, "AnimSpeedMultiplier", AnimatorControllerParameterType.Float);
+            AddParameterIfMissing(controller, "ActionLocked", AnimatorControllerParameterType.Bool);
 
             AnimatorStateMachine sm = controller.layers[0].stateMachine;
 
@@ -83,30 +88,41 @@ namespace ToonBossRush.Editor
             // MoveEntryOffset: 이동 시작 즉시 보폭 중간부터 보이도록 진입 지점을 당겨둠.
             AddAnyStateTransition(sm, walkingState, MoveEntryOffset,
                 ("MoveSpeed", AnimatorConditionMode.Greater, 0.1f),
+                ("MoveSpeed", AnimatorConditionMode.Less, RunThreshold),
+                ("ActionLocked", AnimatorConditionMode.IfNot, 0f),
                 ("TurnAngle", AnimatorConditionMode.Greater, -TurnThreshold),
                 ("TurnAngle", AnimatorConditionMode.Less, TurnThreshold));
 
             AddAnyStateTransition(sm, turnRight, MoveEntryOffset,
                 ("MoveSpeed", AnimatorConditionMode.Greater, 0.1f),
+                ("MoveSpeed", AnimatorConditionMode.Less, RunThreshold),
+                ("ActionLocked", AnimatorConditionMode.IfNot, 0f),
                 ("TurnAngle", AnimatorConditionMode.Greater, TurnThreshold),
                 ("TurnAngle", AnimatorConditionMode.Less, StrafeThreshold));
 
             AddAnyStateTransition(sm, turnLeft, MoveEntryOffset,
                 ("MoveSpeed", AnimatorConditionMode.Greater, 0.1f),
+                ("MoveSpeed", AnimatorConditionMode.Less, RunThreshold),
+                ("ActionLocked", AnimatorConditionMode.IfNot, 0f),
                 ("TurnAngle", AnimatorConditionMode.Less, -TurnThreshold),
                 ("TurnAngle", AnimatorConditionMode.Greater, -StrafeThreshold));
 
             AddAnyStateTransition(sm, strafeRight, MoveEntryOffset,
                 ("MoveSpeed", AnimatorConditionMode.Greater, 0.1f),
+                ("MoveSpeed", AnimatorConditionMode.Less, RunThreshold),
+                ("ActionLocked", AnimatorConditionMode.IfNot, 0f),
                 ("TurnAngle", AnimatorConditionMode.Greater, StrafeThreshold));
 
             AddAnyStateTransition(sm, strafeLeft, MoveEntryOffset,
                 ("MoveSpeed", AnimatorConditionMode.Greater, 0.1f),
+                ("MoveSpeed", AnimatorConditionMode.Less, RunThreshold),
+                ("ActionLocked", AnimatorConditionMode.IfNot, 0f),
                 ("TurnAngle", AnimatorConditionMode.Less, -StrafeThreshold));
 
             // AnyState → Idle (모든 이동 상태 공통 복귀 경로) — Idle은 제자리 자세라 오프셋 불필요.
             AddAnyStateTransition(sm, idleState, 0f,
-                ("MoveSpeed", AnimatorConditionMode.Less, 0.1f));
+                ("MoveSpeed", AnimatorConditionMode.Less, 0.1f),
+                ("ActionLocked", AnimatorConditionMode.IfNot, 0f));
 
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();
@@ -123,18 +139,18 @@ namespace ToonBossRush.Editor
             return clip;
         }
 
-        private static void AddParameterIfMissing(AnimatorController controller, string name, AnimatorControllerParameterType type)
+        public static void AddParameterIfMissing(AnimatorController controller, string name, AnimatorControllerParameterType type)
         {
             if (controller.parameters.Any(p => p.name == name)) return;
             controller.AddParameter(name, type);
         }
 
-        private static AnimatorState FindState(AnimatorStateMachine sm, string name)
+        public static AnimatorState FindState(AnimatorStateMachine sm, string name)
         {
             return sm.states.FirstOrDefault(s => s.state.name == name).state;
         }
 
-        private static AnimatorState GetOrAddState(AnimatorStateMachine sm, string name, Motion motion, Vector3 position)
+        public static AnimatorState GetOrAddState(AnimatorStateMachine sm, string name, Motion motion, Vector3 position)
         {
             AnimatorState state = FindState(sm, name);
             if (state == null)
@@ -146,7 +162,7 @@ namespace ToonBossRush.Editor
             return state;
         }
 
-        private static void SetSpeedParameter(AnimatorState state, string parameterName)
+        public static void SetSpeedParameter(AnimatorState state, string parameterName)
         {
             state.speed = 1f;
             state.speedParameterActive = true;
@@ -154,7 +170,7 @@ namespace ToonBossRush.Editor
             Debug.Log($"현재 애니메이션 : {state} - {parameterName}");
         }
 
-        private static void AddAnyStateTransition(AnimatorStateMachine sm, AnimatorState destination, float offset, params (string param, AnimatorConditionMode mode, float threshold)[] conditions)
+        public static void AddAnyStateTransition(AnimatorStateMachine sm, AnimatorState destination, float offset, params (string param, AnimatorConditionMode mode, float threshold)[] conditions)
         {
             // 재실행 시 중복 생성 방지 — 같은 목적지로 가는 기존 AnyState 트랜지션을 지우고 재생성
             foreach (AnimatorStateTransition existing in sm.anyStateTransitions.Where(t => t.destinationState == destination).ToList())
